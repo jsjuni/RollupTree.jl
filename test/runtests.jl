@@ -1,10 +1,11 @@
-using RollupTree
-using Test
-using DataFrames
-using Graphs
+using TestItems
 
-@testset "RollupTree.jl" begin
+@testsnippet Setup begin
 
+    using RollupTree
+    using DataFrames
+    using Graphs
+ 
     wbs_table = DataFrame(
         id = ["top", "1", "2", "3", "1.1", "1.2", "2.1", "2.2", "3.1", "3.2"],
         pid = [missing, "top", "top", "top", "1", "1", "2", "2", "3", "3"],
@@ -32,41 +33,41 @@ using Graphs
             add_edge!(wbs_tree, child_idx, parent_idx)
         end
     end
+end
 
-    @testset "test rollup()" begin
-        @test isequal(wbs_table_rollup, RollupTree.rollup(wbs_table_rollup, wbs_tree))
-    end
+@testitem "test rollup()" setup = [Setup] begin
+    @test isequal(wbs_table_rollup, RollupTree.rollup(wbs_table_rollup, wbs_tree))
+end
 
-    @testset "test update_prop()" begin
-        expected1 = deepcopy(wbs_table)
-        expected1[findfirst(expected1[!, :id] .== "1"), :work] = 11.8 + 33.8
-        result1 = RollupTree.update_prop(
-            wbs_table, "1", ["1.1", "1.2"],
-            (d, k, v) -> begin d[findfirst(d[!, :id] .== k), :work] = v; d end,
-            (d, k) -> d[findfirst(d[!, :id] .== k), :work],
-            (av) -> reduce(+, av),
-            (ds, target, v) -> v
-        )
-        @test isequal(result1, expected1)
+@testitem "test update_prop()" setup = [Setup] begin
+    expected1 = deepcopy(wbs_table)
+    expected1[findfirst(expected1[!, :id] .== "1"), :work] = 11.8 + 33.8
+    result1 = RollupTree.update_prop(
+        wbs_table, "1", ["1.1", "1.2"],
+        (d, k, v) -> begin d[findfirst(d[!, :id] .== k), :work] = v; d end,
+        (d, k) -> d[findfirst(d[!, :id] .== k), :work],
+        (av) -> reduce(+, av),
+        (ds, target, v) -> v
+    )
+    @test isequal(result1, expected1)
 
-        expected2 = deepcopy(expected1)
-        expected2[findfirst(expected2[!, :id] .== "1"), [:work, :budget]] .= [11.8 + 33.8, 25000 + 61000]
-        result2 = RollupTree.update_prop(
-            wbs_table, "1", ["1.1", "1.2"],
-            (d, k, v) -> begin d[findfirst(d[!, :id] .== k), [:work, :budget]] = v; d end,
-            (d, k) -> d[findfirst(d[!, :id] .== k), [:work, :budget]],
-            (av) -> mapreduce(x -> Vector(x), +, av),
-            (ds, target, v) -> v
-        )
-        @test isequal(result2, expected2)
+    expected2 = deepcopy(expected1)
+    expected2[findfirst(expected2[!, :id] .== "1"), [:work, :budget]] .= [11.8 + 33.8, 25000 + 61000]
+    result2 = RollupTree.update_prop(
+        wbs_table, "1", ["1.1", "1.2"],
+        (d, k, v) -> begin d[findfirst(d[!, :id] .== k), [:work, :budget]] = v; d end,
+        (d, k) -> d[findfirst(d[!, :id] .== k), [:work, :budget]],
+        (av) -> mapreduce(x -> Vector(x), +, av),
+        (ds, target, v) -> v
+    )
+    @test isequal(result2, expected2)
 
-      result3 = RollupTree.update_prop(
-            wbs_table, "1.1", [],
-            (d, k, v) -> begin d[findfirst(d[!, :id] .== k), :work] = v; d end,
-            (d, k) -> d[findfirst(d[!, :id] .== k), :work],
-            (av) -> reduce(+, av),
-            (ds, target, v) -> v
-        )
-        @test isequal(result3, wbs_table)
-    end
+    result3 = RollupTree.update_prop(
+        wbs_table, "1.1", [],
+        (d, k, v) -> begin d[findfirst(d[!, :id] .== k), :work] = v; d end,
+        (d, k) -> d[findfirst(d[!, :id] .== k), :work],
+        (av) -> reduce(+, av),
+        (ds, target, v) -> v
+    )
+    @test isequal(result3, wbs_table)
 end
