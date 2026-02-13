@@ -100,3 +100,17 @@ end
   result2 = RollupTree.df_set_row_by_id(wbs_table, "1.1", shuffled)
   @test isequal(result2[findfirst(result2[!, :id] .== "1.1"), :], expected)
 end
+
+@testitem "test df_set_by_key() and df_set_by_id()" setup = [Setup] begin
+  expected = deepcopy(wbs_table)
+  expected[findfirst(expected[!, :id] .== "1.1"), :work] = 11.9
+  expected[findfirst(expected[!, :id] .== "1.1"), :budget] = 25001
+
+  result1 = RollupTree.df_set_by_key(wbs_table, :id, "1.1", :work, 11.9)
+  result2 = RollupTree.df_set_by_key(result1, :id, "1.1", :budget, 25001)
+  @test isequal(result2, expected)
+
+  result3 = RollupTree.df_set_by_id(wbs_table, "1.1", :work, 11.9)
+  result4 = RollupTree.df_set_by_id(result3, "1.1", :budget, 25001)
+  @test isequal(result4, expected)
+end
