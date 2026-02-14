@@ -11,16 +11,28 @@ using MetaGraphsNext
     end
 
     validate_dag(graph) = begin
-        if !is_directed_acyclic_graph(graph)
-            error("The provided graph is not a directed acyclic graph.")
+        if !is_directed(graph)
+            error("The provided graph is not directed.")
         end
+        if Graphs.is_cyclic(graph)
+            error("The provided graph contains a directed cycle.")
+        end
+        return true
     end
 
     validate_tree(graph) = begin
         validate_dag(graph)
-        if !is_tree(graph)
-            error("The provided graph is not a tree.")
+        if !Graphs.is_connected(graph)
+            error("The provided graph is not connected.")
         end
+        if Graphs.is_cyclic(SimpleGraph(graph))
+            error("The provided graph contains a cycle.")
+        end
+        nroots = sum(v -> outdegree(graph, v) == 0, vertices(graph))
+        if nroots != 1
+            error("The provided graph must have exactly one root (vertex with outdegree 0). Found $nroots.")
+        end
+        return true
     end
 
     update_prop(ds, target, sources, set, get, combine = (av) -> reduce(+, av), override = (ds, target, v) -> v) = begin

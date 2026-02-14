@@ -29,11 +29,11 @@ using TestItems
     wbs_tree = MetaGraphsNext.MetaGraph(Graphs.SimpleDiGraph(), label_type = String)
     for i in 1:nrow(wbs_table)
         id = wbs_table[i, :id]
+        wbs_tree[id] = nothing
         pid = wbs_table[i, :pid]
         if !ismissing(pid)
-            add_edge!(wbs_tree, pid, id)
-        else
-            add_vertex!(wbs_tree, id)
+            wbs_tree[pid] = nothing
+            wbs_tree[id, pid] = nothing
         end
     end
 end
@@ -126,4 +126,52 @@ end
 
     result2 = RollupTree.update_df_prop_by_id(wbs_table, "1", ["1.1", "1.2"], :work)
     @test isequal(result2, expected)
+end
+
+@testitem "validate_dag()" setup = [Setup] begin
+    # Test with a valid DAG
+    @test RollupTree.validate_dag(wbs_tree) === true
+
+    # Test with an undirected graph
+    undirected_graph = Graphs.SimpleGraph(nv(wbs_tree))
+    for e in edges(wbs_tree)
+        add_edge!(undirected_graph, src(e), dst(e))
+    end
+    @test_throws ErrorException RollupTree.validate_dag(undirected_graph)
+
+    # Test with a graph containing a directed cycle
+    cyclic_graph = deepcopy(wbs_tree)
+    cyclic_graph["1", "1.1"] = nothing
+    cyclic_graph["1.1", "1.2"] = nothing
+    @test_throws ErrorException RollupTree.validate_dag(cyclic_graph)
+
+    # Test with a disconnected graph
+    disconnected_graph = deepcopy(wbs_tree)
+    add_vertex!(disconnected_graph, "isolated")
+    # @test_throws ErrorException RollupTree.validate_dag(disconnected_graph)
+end
+
+@testitem "validate_tree()" setup = [Setup] begin
+    # Test with a valid tree
+    @test RollupTree.validate_tree(wbs_tree) === true
+
+    # Test with a non-directed graph
+    undirected_graph = Graphs.SimpleGraph(nv(wbs_tree))
+    @test_throws ErrorException RollupTree.validate_tree(undirected_graph)
+
+    # Test with a graph containing an undirected cycle
+    cyclic_graph = deepcopy(wbs_tree)
+    cyclic_graph["1", "1.1"] = nothing
+    @test_throws ErrorException RollupTree.validate_tree(cyclic_graph)
+
+    # Test with a disconnected graph
+    disconnected_graph = deepcopy(wbs_tree)
+    add_vertex!(disconnected_graph, "isolated")
+    @test_throws ErrorException RollupTree.validate_tree(disconnected_graph)
+
+    # Test with a graph that has multiple roots
+    multi_root_graph = deepcopy(wbs_tree)
+    add_vertex!(multi_root_graph, "new_root")
+    multi_root_graph["1.1", "new_root"] = nothing
+    @test_throws ErrorException RollupTree.validate_tree(multi_root_graph)
 end
