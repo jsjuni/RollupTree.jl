@@ -17,14 +17,14 @@ using TestItems
     )
 
     wbs_table_rollup = deepcopy(wbs_table)
-    wbs_table_rollup[wbs_table[!, :id] .== "1", :work] .= 45.6
-    wbs_table_rollup[wbs_table[!, :id] .== "2", :work] .= 24.0
-    wbs_table_rollup[wbs_table[!, :id] .== "3", :work] .= 30.4
-    wbs_table_rollup[wbs_table[!, :id] .== "top", :work] .= 100.0
-    wbs_table_rollup[wbs_table[!, :id] .== "1", :budget] .= 86000
-    wbs_table_rollup[wbs_table[!, :id] .== "2", :budget] .= 46000
-    wbs_table_rollup[wbs_table[!, :id] .== "3", :budget] .= 83500
-    wbs_table_rollup[wbs_table[!, :id] .== "top", :budget] .= 215500
+    wbs_table_rollup[wbs_table[!, :id] .== "1", :work] .= 11.8 + 33.8
+    wbs_table_rollup[wbs_table[!, :id] .== "2", :work] .= 18.2 + 5.8
+    wbs_table_rollup[wbs_table[!, :id] .== "3", :work] .= 16.2 + 14.2
+    wbs_table_rollup[wbs_table[!, :id] .== "top", :work] .= 11.8 + 33.8 + 18.2 + 5.8 + 16.2 + 14.2
+    wbs_table_rollup[wbs_table[!, :id] .== "1", :budget] .= 25000 + 61000
+    wbs_table_rollup[wbs_table[!, :id] .== "2", :budget] .= 37000 + 9000
+    wbs_table_rollup[wbs_table[!, :id] .== "3", :budget] .= 62000 + 21500
+    wbs_table_rollup[wbs_table[!, :id] .== "top", :budget] .= 25000 + 61000 + 37000 + 9000 + 62000 + 21500
 
     wbs_tree = MetaGraphsNext.MetaGraph(Graphs.SimpleDiGraph(), label_type = String)
     for i in 1:nrow(wbs_table)
@@ -39,7 +39,25 @@ using TestItems
 end
 
 @testitem "test rollup()" setup = [Setup] begin
-    @test isequal(wbs_table_rollup, RollupTree.rollup(wbs_table_rollup, wbs_tree))
+    result = RollupTree.rollup(
+        wbs_tree,
+        wbs_table,
+        (d, p, c) -> begin
+            if length(c) == 0
+                d
+            else
+                idx = findfirst(d[!, :id] .== p)
+                if isnothing(idx)
+                    error("Parent ID not found in DataFrame")
+                end
+                d[idx, :work] = sum(d[in(c).(d.id), :work])
+                d[idx, :budget] = sum(d[in(c).(d.id), :budget])
+                d
+            end
+        end,
+        (t, d) -> true
+    )
+   @test isequal(wbs_table_rollup, result)
 end
 
 @testitem "test update_prop()" setup = [Setup] begin

@@ -6,8 +6,14 @@ using MetaGraphsNext
 
 # Write your package code here.
 
-    rollup(table, tree) = begin
-        table
+    rollup(tree, ds, update, validate_ds, validate_tree = validate_tree) = begin
+        validate_tree(tree)
+        validate_ds(tree, ds)
+        foldl(
+            (s, v) -> update(s, v, inneighbor_labels(tree, v)),
+            map(v -> label_for(tree, v), topological_sort(tree)),
+            init = ds
+        )
     end
 
     validate_dag(graph) = begin
