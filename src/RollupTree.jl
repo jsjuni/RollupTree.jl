@@ -16,26 +16,22 @@ using MetaGraphsNext
         )
     end
 
-    # Don't export this.
-
-    vertices_above(tree, vertex, alist = []) = begin
-        push!(alist, vertex)
-        p = collect(outneighbor_labels(tree, vertex))
-        if length(p) == 0
-            popfirst!(alist)
-            return alist
-        else
-            return vertices_above(tree, p[1], alist)
-        end
-    end
-    
     update_rollup(tree, ds, vertex, update) = begin
         if outdegree(tree, code_for(tree, vertex)) == 0
             error("update_rollup should only be called on leaf vertices.")
         end
-       foldl(
+        todo = [vertex]
+        vertices_above = []
+        while length(todo) > 0
+            v = pop!(todo)
+            for p in outneighbor_labels(tree, v)
+                push!(vertices_above, p)
+                push!(todo, p)
+            end
+        end
+        foldl(
             (s, v) -> update(s, v, inneighbor_labels(tree, v)),
-            vertices_above(tree, vertex),
+            vertices_above,
             init = ds
         )
     end

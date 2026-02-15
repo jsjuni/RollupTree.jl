@@ -60,17 +60,6 @@ end
    @test isequal(wbs_table_rollup, result)
 end
 
-@testitem "vertices_above()" setup = [Setup] begin
-    expected1 = []
-    @test isequal(RollupTree.vertices_above(wbs_tree, "top"), expected1)
-
-    expected2 = ["top"]
-    @test isequal(RollupTree.vertices_above(wbs_tree, "1"), expected2)
-
-    expected3 = ["1", "top"]
-    @test isequal(RollupTree.vertices_above(wbs_tree, "1.1"), expected3)
-end
-
 @testitem "update_rollup()" setup = [Setup] begin
     input = deepcopy(wbs_table_rollup)
     input[findfirst(input[!, :id] .== "3.2"), :budget] = 22000
