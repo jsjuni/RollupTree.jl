@@ -98,8 +98,9 @@ module RollupTree
         if isnothing(row_idx)
             error("Key value not found in DataFrame")
         end
-        df[row_idx, prop] = value
-        return df
+        new_df = copy(df)
+        new_df[row_idx, prop] = value
+        return new_df
     end
 
     df_set_by_id(df, idval, prop, value) = df_set_by_key(df, :id, idval, prop, value)
@@ -123,10 +124,11 @@ module RollupTree
         if isnothing(row_idx)
             error("Key value not found in DataFrame")
         end
+        new_df = copy(df)
         for k in keys(new_row)
-            df[row_idx, k] = new_row[k]
+            new_df[row_idx, k] = new_row[k]
         end
-        return df
+        return new_df
     end
     
     df_set_row_by_id(df, idval, new_row) = df_set_row_by_key(df, :id, idval, new_row)
